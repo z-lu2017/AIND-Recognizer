@@ -146,24 +146,40 @@ class SelectorCV(ModelSelector):
         counter = 0.0
         if len(self.sequences) >= 3:
             n_splits = min(3, len(self.sequences))
+            splits = KFold(n_splits)
+            for n in range(self.min_n_components, self.max_n_components+1):
+                try:
+                    for train_index, test_index in splits.split(self.sequences):
+                        train_X, train_lengths = combine_sequences(train_index, self.sequences)
+                        test_X, test_lengths = combine_sequences(test_index, self.sequences)
+                        model = GaussianHMM(n_components=n, covariance_type="diag", n_iter=1000,
+                                                random_state=self.random_state, verbose=False).fit(train_X, train_lengths)
+                        score = model.score(test_X, test_lengths)
+                        sum_score += score
+                        counter += 1
+                    # used average score from udacity forum: https://discussions.udacity.com/t/my-selectorcv-class/349110
+                    average_score = sum_score / counter
+                    if average_score > best_score:
+                        best_score = average_score
+                        best_model = model
+                except:
+                    continue
+        # for models with length less than 3
         else:
-            n_splits = 3
-        splits = KFold(n_splits)
-        for n in range(self.min_n_components, self.max_n_components+1):
-            try:
-                for train_index, test_index in splits.split(self.sequences):
-                    train_X, train_lengths = combine_sequences(train_index, self.sequences)
-                    test_X, test_lengths = combine_sequences(test_index, self.sequences)
+            best_score_1 = float('inf')
+            best_model = None
+            for n in range(self.min_n_components, self.max_n_components+1):
+                try:
                     model = GaussianHMM(n_components=n, covariance_type="diag", n_iter=1000,
-                                            random_state=self.random_state, verbose=False).fit(train_X, train_lengths)
-                    score = model.score(test_X, test_lengths)
-                    sum_score += score
-                    counter += 1
-                # used average score from udacity forum: https://discussions.udacity.com/t/my-selectorcv-class/349110
-                average_score = sum_score / counter
-                if average_score > best_score:
-                    best_score = average_score
-                    best_model = model
-            except:
-                continue
+                                            random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                    logL = model.score(self.X, self.lengths)
+                    # equation from udacity forum: https://discussions.udacity.com/t/how-to-start-coding-the-selectors/476905/10
+                    p = n ** 2 + 2 * n * len(self.X[0])  - 1
+                    N = len(self.X)
+                    score_1 = -2 * logL + p * np.log(N)
+                    if score_1 < best_score_1:
+                        best_score_1 = score_1
+                        best_model = model
+                except:
+                    continue
         return best_model

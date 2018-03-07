@@ -31,7 +31,7 @@ def recognize(models: dict, test_set: SinglesData):
             try:
                 score = model.score(test_X,test_lengths)
                 prob[word] = score
-                if logL > best_score:
+                if score > best_score:
                     best_score = score
                     best_guess = word
             except:
