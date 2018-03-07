@@ -122,7 +122,7 @@ class SelectorDIC(ModelSelector):
                         quantity += 1
                         X, lengths = self.hwords[word]
                         other_words_score += model.score(X, lengths)
-
+                # equation from udacity forum: https://discussions.udacity.com/t/how-to-start-coding-the-selectors/476905/10
                 score = this_word_score - other_words_score / quantity
                 if score > best_score:
                     best_score = score
@@ -150,6 +150,7 @@ class SelectorCV(ModelSelector):
             for n in range(self.min_n_components, self.max_n_components+1):
                 try:
                     for train_index, test_index in splits.split(self.sequences):
+                        # used forum code to get train/test X,Lengths respectively: https://discussions.udacity.com/t/selectorcv-crashes/400125
                         train_X, train_lengths = combine_sequences(train_index, self.sequences)
                         test_X, test_lengths = combine_sequences(test_index, self.sequences)
                         model = GaussianHMM(n_components=n, covariance_type="diag", n_iter=1000,
